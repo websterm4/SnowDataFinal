@@ -151,13 +151,6 @@ def read_snow:
         snow[layer] = ma.array(snow[layer])
         
     return snow
-        
-snow_file0 = read_MODIS_snow('files/data/%s'%files[20],\
-                    ncol=ncol,nrow=nrow,mincol=mincol,minrow=minrow)
-layer = 'Fractional_Snow_Cover'
-snow = snow_file0[layer]
-new_mask = area_mask | snow.mask  # show figure to see final result
-snow = ma.array(snow,mask=new_mask) # show figure here
 
 
 ALTERNATIVE APPROACH TO VECTOR MASK ##################################
@@ -189,10 +182,83 @@ np. where(~data.mask)
 # ~ is applied to ensure good data (False for good data in the data mask) are True
 
 # NEAREST NEIGHBOUR INTERPOLATION
-
+# In 2009, dayas 238 and 250 are missing
 from scipy from interpolate
 
+pixel = data[:,r,c]
+y_ = pixel
+x_ = (np.arange(len(y_))*8.+1)[~pixel.mask]
+y_ = y_[~pixel.mask]
+# Dataset repated 3 times to represent a long time series for interpolation
+y_extend = np.tile(y_,3)
+x_extend = np.hstack((x_-46*8,x_,x_+46*8))
 
+xnew = np.arange(1.,366.)
+f = interpolate.interp1d(x_extend,y_extend,kind='nearest')
+ynew = f(xnew)
 
+# SMOOTHING
+import sys
+sys.path.insert(0,'files/python')
+
+year = 2009
+satellite = 'MOD10A1'
+
+files = np.sort(glob.glob('files/data/MODIS_Snow_Data/%s.A%d*.*hdf'%(satellite,year)
+
+fp = open(files)
+filelist = fp.readlines()
+fp.close()
+
+from read_MODIS_snow import *
+
+try:
+    data = snow['Fractional_Snow_Cover']
+except:
+    snow = read_MODIS_snow
+    data = snow['Fractional_Snow_Cover']
+
+from smoothn import *
+gamma = 5
+pixel = data[:,r,c]
+x = np.arange(46)*8+1
+order = 2
+z = smoothn(pixel,s=gamma,smoothOrder=2.0)[0]
+plt.plot(x,pixel,'k*',label='y')
+plt.errorbar(x,pixel,pixel_sd*1.96)
+plt.plot(x,z,'r',label='z')
+# loop over all pixels
+mask = (data.mask.sum(axis=0) == 0)
+mask = np.array([mask]*data.shape[0])
+
+z = smoothn(data,s=5.0,smoothOrder=2.0,axis=0,TolZ=0.05,verbose=True)[0]
+z = ma.array(z,mask=mask)
+plt.figure(figsize=(9,9))
+plt.imshow(z[20],interpolation='none',vmax=6)
+plt.colorbar()
+# smooth for individual image
+ZZ = smoothn(z,s=s,smoothOrder=2.,axis=(1,2),verbose=True)
+Z = ZZ[0]
+plt.figure(figsize=(9,9))
+plt.imshow(Z,interpolation='none',vmax=6)
+plt.colorbar()
+
+# Wrapped function
+order = 2
+mask = (~data.mask).sum(axis=0)
+odata = np.zeros((46,) + mask.shape)
+rows,cols = np.where(mask>0)
+len_x = len(rows)
+order = 2
+gamma = 5.
+for i in xrange(len_x):
+    r,c = rows[i],cols[i]
+    if i%(len_x/20) == 0
+    pixel = data[:,r,c]
+    zz = smoothn(pixel,s=gamma,sd=pixel_sd,smoothOrder=order,TolZ=0.05)
+    odata[:,rows[i],cols[i]] = zz[0]
     
+
+
+
     
