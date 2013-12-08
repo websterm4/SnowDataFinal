@@ -4,7 +4,13 @@ SnowDataFinal
 import gdal
 import numpy as np
 import numpy.ma as ma
-import glob
+from glob import glob
+import pylab as plt
+from osgeo import ogr
+import os
+import sys
+sys.path.insert(0,'files/python')
+from raster_mask import *
 
 year = '2009'
 satellite = 'MOD10A1'
@@ -62,12 +68,19 @@ def read_MODIS_snow(filename):
         this_file = file_template % ( filename, layer )
         g = gdal.Open ( this_file )
         data[layer] = g.ReadAsArray() 
+    fname = file_template % ( filename, layer )
+    basinmask = raster_mask2(fname,\
+                target_vector_file="files/data/Hydrologic_Units/HUC_Polygons.shp",\
+                attribute_filter=2)
+    data['Fractional_Snow_Cover'] = ma.array(data['Fractional_Snow_Cover'],mask=basinmask)
+    data['Snow_Spatial_QA'] = ma.array(data['Snow_Spatial_QA'],mask=basinmask)
     snow = data['Fractional_Snow_Cover']
     qc = data['Snow_Spatial_QA']
     qc = qc & 1
     snowm = np.ma.array ( snow, mask=qc )
-    
-    return snow
+    valid_mask = (snowm > 100)
+    snowdata = ma.array( snowm, mask=valid_mask )
+    return snowdata
     
 LOOP FOR ALL IMAGES    
 # Define year and satellite 
@@ -77,16 +90,33 @@ satellite = 'MOD10A1'
 files = np.sort(glob.glob('files/data/MODIS_Snow_Data/%s.A%d*.*hdf'%(satellite,year)))
 
 snow = []
-for f in files:
-    snow.append(read_MODIS_snow(f))
-snow = np.ma.array(snow)
+snow = ma.array([read_MODIS_snow(f) for in files])
 # masked array created of snow cover and qc information for all images
 
 
+MAKE MOVIE
+# Looping over all daily tiles to produce one saved snow cover image for each
+for i,f in enumerate(files):
+    plt.figure(figsize=(7,7))
+    plt.imshow(snow[i],cmap=cmap,interpolation='none',vmin=0.,vmax=100)
+    file_id = f.split('/')[-1].split('.')[-5][1:] # title to just contain year,doy
+    plt.title(file_id)
+    plt.colorbar()
+    plt.savefig('file/images/snow_riogrande_%s.jpg'%file_id)
+    
+# Making movie
+cmd = 'convert -delay 100 -loop 0 files/images/snow_riogrande_*.jpg files/images/snow_riogrande2.gif'
+os.system(cmd)
 
+VECTOR MASKING
 
+fname = this_file = file_template % ( filename, layer )
 
+g = ogr.Open( "files/data/Hydrologic_Units/HUC_Polygons.shp" )
 
+basinmask = raster_mask2(fname,\
+                target_vector_file="files/data/Hydrologic_Units/HUC_Polygons.shp",\
+                attribute_filter=2)
 
 
 
