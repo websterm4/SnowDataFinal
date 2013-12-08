@@ -12,6 +12,8 @@ import sys
 sys.path.insert(0,'files/python')
 from raster_mask import *
 
+INDIVIDUAL STEPS FOR DEFINING FUNCITON
+
 year = '2009'
 satellite = 'MOD10A1'
 
@@ -56,7 +58,7 @@ qc = qc & 1
 snowm = np.ma.array ( snow, mask=qc )
 # masked array showing False for all 'good' data values
 
-WRAPPING INTO A FUNCTION:
+#########################   WRAPPING INTO A FUNCTION    ############################
 
 def read_MODIS_snow(filename):
     g = gdal.Open(filename)
@@ -78,14 +80,14 @@ def read_MODIS_snow(filename):
     qc = data['Snow_Spatial_QA']
     qc = qc & 1
     snowm = np.ma.array ( snow, mask=qc )
-    valid_mask = (snowm > 100)
+    valid_mask = (snowm > 100) #Mask defined by MODIS product data description, snow pixels between 0-100
     snowdata = ma.array( snowm, mask=valid_mask )
     return snowdata
     
 # Output here:
 # Snow Cover image for the upper rio grande area with QC info and cloud masked out
     
-LOOP FOR ALL IMAGES    
+########################### LOOP FOR ALL IMAGES ##################################    
 # Define year and satellite 
 year = 2009
 satellite = 'MOD10A1'
@@ -97,7 +99,7 @@ snow = ma.array([read_MODIS_snow(f) for in files])
 # masked array created of snow cover and qc information for all images
 
 
-MAKE MOVIE
+############################    MAKE MOVIE  ########################################
 # Looping over all daily tiles to produce one saved snow cover image for each
 for i,f in enumerate(files):
     plt.figure(figsize=(7,7))
@@ -113,13 +115,41 @@ os.system(cmd)
 
 VECTOR MASKING
 
-fname = this_file = file_template % ( filename, layer )
-
-g = ogr.Open( "files/data/Hydrologic_Units/HUC_Polygons.shp" )
-
-basinmask = raster_mask2(fname,\
+def read_snow:
+    
+    fname = this_file = file_template % ( filename[0], layer )
+    # [0] used her to specify a file for geometry information
+    g = ogr.Open( "files/data/Hydrologic_Units/HUC_Polygons.shp" )
+    file_template = 'HDF4_EOS:EOS_GRID:"%s":MOD_Grid_Snow_500m:%s'
+    mask = raster_mask2(fname,\
                 target_vector_file="files/data/Hydrologic_Units/HUC_Polygons.shp",\
                 attribute_filter=2)
+    rowpix,colpix = np.where(mask == False) # Mask is false for the area we want
+    mincol,maxcol = min(colpix),max(colpix)
+    minrow,maxrow = min(rowpix),max(rowpix)
+    ncol = maxcol - mincol + 1
+    nrow = maxrow - minrow + 1
+    area_mask = mask[minrow:minrow+nrow,mincol:mincol+ncol]
+    data_fields = {'Fractional_Snow_Cover':[],'Snow_Spatial_QA':[]}
+    snow = {'filenames':np.sort(files[0]),\
+        'minrow':minrow,'mincol':mincol,\
+        'mask':area_mask}
+    snow.update(data_fields)
+    for f in np.sort(snow['files']):
+        this_snow = read_MODIS_snow(('files/data/%s'%f,\
+                                    mincol=mincol,ncol=ncol,\
+                                    minrow=minrow,nrow=nrow)
+
+
+snow_file0 = read_MODIS_snow('files/data/%s'%files[20],\
+                    ncol=ncol,nrow=nrow,mincol=mincol,minrow=minrow)
+layer = 'Fractional_Snow_Cover'
+snow = snow_file0[layer]
+new_mask = area_mask | snow.mask  # show figure to see final result
+snow = ma.array(snow,mask=new_mask) # show figure here
+
+
+
 
 alternative approach: (outside of def read_MODIS_snow)
 year = 2009
@@ -137,7 +167,8 @@ for filename in files:
     
 snow = ma.array(snow)
     
-snow = 
+    
+
 
 
 
