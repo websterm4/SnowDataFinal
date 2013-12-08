@@ -113,10 +113,10 @@ for i,f in enumerate(files):
 cmd = 'convert -delay 100 -loop 0 files/images/snow_riogrande_*.jpg files/images/snow_riogrande2.gif'
 os.system(cmd)
 
-VECTOR MASKING
+########################### FUNCTION DEFINED FOR VECTOR MASKING ########################
 
 def read_snow:
-    
+    (READ MODIS FILES IN WITH OTHER MASKS)
     fname = this_file = file_template % ( filename[0], layer )
     # [0] used her to specify a file for geometry information
     g = ogr.Open( "files/data/Hydrologic_Units/HUC_Polygons.shp" )
@@ -124,23 +124,34 @@ def read_snow:
     mask = raster_mask2(fname,\
                 target_vector_file="files/data/Hydrologic_Units/HUC_Polygons.shp",\
                 attribute_filter=2)
-    rowpix,colpix = np.where(mask == False) # Mask is false for the area we want
-    mincol,maxcol = min(colpix),max(colpix)
+    # Raster mask is made from the vector shape file 
+    # Attribute filter is assigned a value 2 to represent the HUC Polygon 2, which is the upper rio grande basin
+    rowpix,colpix = np.where(mask == False) # Mask is false for the area we want therefore only this area is extracted
+    mincol,maxcol = min(colpix),max(colpix) # Extent defined by min/max rows/cols
     minrow,maxrow = min(rowpix),max(rowpix)
     ncol = maxcol - mincol + 1
     nrow = maxrow - minrow + 1
     area_mask = mask[minrow:minrow+nrow,mincol:mincol+ncol]
+    # smaller mask is defined for the upper rio grande basin
     data_fields = {'Fractional_Snow_Cover':[],'Snow_Spatial_QA':[]}
+    # Empty dictionary is made and filenames from 'files' are put in with info of the mask and info on min/max extent
     snow = {'filenames':np.sort(files[0]),\
         'minrow':minrow,'mincol':mincol,\
         'mask':area_mask}
-    snow.update(data_fields)
+    snow.update(data_fields) # dictionaries are combined
     for f in np.sort(snow['files']):
         this_snow = read_MODIS_snow(('files/data/%s'%f,\
                                     mincol=mincol,ncol=ncol,\
                                     minrow=minrow,nrow=nrow)
-
-
+        for layer in data_fields.keys():
+            new_mask = this_snow[layer].mask | area_mask
+            this_snow[layer] = ma.array(this_snow[layer],mask=new_mask)
+            snow[layer].append(this_snow[layer])
+    for layer in data_fields.keys():
+        snow[layer] = ma.array(snow[layer])
+        
+    return snow
+        
 snow_file0 = read_MODIS_snow('files/data/%s'%files[20],\
                     ncol=ncol,nrow=nrow,mincol=mincol,minrow=minrow)
 layer = 'Fractional_Snow_Cover'
@@ -149,7 +160,7 @@ new_mask = area_mask | snow.mask  # show figure to see final result
 snow = ma.array(snow,mask=new_mask) # show figure here
 
 
-
+ALTERNATIVE APPROACH TO VECTOR MASK ##################################
 
 alternative approach: (outside of def read_MODIS_snow)
 year = 2009
@@ -168,8 +179,18 @@ for filename in files:
 snow = ma.array(snow)
     
     
+############################# UNIVARIATE INTERPOLATION ################################
+# only needed for 2009 data
+data = snow['Fractional_Snow_Cover']
+# Array of snow cover extent for the upper rio grande basin for two years
+np. where(~data.mask)
+# Pixels containing data are identified
+# The np.where funciton produces an index of items which are True, therefore
+# ~ is applied to ensure good data (False for good data in the data mask) are True
 
+# NEAREST NEIGHBOUR INTERPOLATION
 
+from scipy from interpolate
 
 
 
