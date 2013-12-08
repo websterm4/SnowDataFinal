@@ -82,13 +82,16 @@ def read_MODIS_snow(filename):
     snowdata = ma.array( snowm, mask=valid_mask )
     return snowdata
     
+# Output here:
+# Snow Cover image for the upper rio grande area with QC info and cloud masked out
+    
 LOOP FOR ALL IMAGES    
 # Define year and satellite 
 year = 2009
 satellite = 'MOD10A1'
 # sort through all files
 files = np.sort(glob.glob('files/data/MODIS_Snow_Data/%s.A%d*.*hdf'%(satellite,year)))
-
+# POSSIBLE INSERT OF VECTOR MASK HERE
 snow = []
 snow = ma.array([read_MODIS_snow(f) for in files])
 # masked array created of snow cover and qc information for all images
@@ -118,7 +121,23 @@ basinmask = raster_mask2(fname,\
                 target_vector_file="files/data/Hydrologic_Units/HUC_Polygons.shp",\
                 attribute_filter=2)
 
-
+alternative approach: (outside of def read_MODIS_snow)
+year = 2009
+satellite = 'MOD10A1'
+# sort through all files
+files = np.sort(glob.glob('files/data/MODIS_Snow_Data/%s.A%d*.*hdf'%(satellite,year)))
+basinmask = raster_mask2(fname,\
+                target_vector_file="files/data/Hydrologic_Units/HUC_Polygons.shp",\
+                attribute_filter=2)
+snow = []
+for filename in files:
+    print filename
+    data = read_MODIS_snow(filename)
+    snow.append(ma.array(data['Fractional_Snow_Cover'],mask=basinmask))
+    
+snow = ma.array(snow)
+    
+snow = 
 
 
 
