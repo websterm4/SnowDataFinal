@@ -71,11 +71,19 @@ def read_MODIS_snow(filename):
         g = gdal.Open ( this_file )
         data[layer] = g.ReadAsArray() 
     fname = file_template % ( filename, layer )
-    basinmask = raster_mask2(fname,\
+    mask = raster_mask2(fname,\
                 target_vector_file="files/data/Hydrologic_Units/HUC_Polygons.shp",\
                 attribute_filter=2)
-    data['Fractional_Snow_Cover'] = ma.array(data['Fractional_Snow_Cover'],mask=basinmask)
-    data['Snow_Spatial_QA'] = ma.array(data['Snow_Spatial_QA'],mask=basinmask)
+    # Raster mask is made from the vector shape file 
+    # Attribute filter is assigned a value 2 to represent the HUC Polygon 2, which is the upper rio grande basin
+    rowpix,colpix = np.where(mask == False) # Mask is false for the area we want therefore only this area is extracted
+    mincol,maxcol = min(colpix),max(colpix) # Extent defined by min/max rows/cols
+    minrow,maxrow = min(rowpix),max(rowpix)
+    ncol = maxcol - mincol + 1
+    nrow = maxrow - minrow + 1
+    area_mask = mask[minrow:minrow+nrow,mincol:mincol+ncol]
+    data['Fractional_Snow_Cover'] = ma.array(data['Fractional_Snow_Cover'],mask=area_mask)
+    data['Snow_Spatial_QA'] = ma.array(data['Snow_Spatial_QA'],mask=area_mask)
     snow = data['Fractional_Snow_Cover']
     qc = data['Snow_Spatial_QA']
     qc = qc & 1
@@ -197,7 +205,7 @@ xnew = np.arange(1.,366.)
 f = interpolate.interp1d(x_extend,y_extend,kind='nearest')
 ynew = f(xnew)
 
-# SMOOTHING
+############################## SMOOTHING ######################################
 import sys
 sys.path.insert(0,'files/python')
 
