@@ -143,12 +143,12 @@ def read_snow:
     # smaller mask is defined for the upper rio grande basin
     data_fields = {'Fractional_Snow_Cover':[],'Snow_Spatial_QA':[]}
     # Empty dictionary is made and filenames from 'files' are put in with info of the mask and info on min/max extent
-    snow = {'filenames':np.sort(files[0]),\
+    snow = {'filename':np.sort(files[0]),\
         'minrow':minrow,'mincol':mincol,\
         'mask':area_mask}
     snow.update(data_fields) # dictionaries are combined
     for f in np.sort(snow['files']):
-        this_snow = read_MODIS_snow(('files/data/%s'%f,\
+        this_snow = read_MODIS_snow('files/data/%s'%f,\
                                     mincol=mincol,ncol=ncol,\
                                     minrow=minrow,nrow=nrow)
         for layer in data_fields.keys():
