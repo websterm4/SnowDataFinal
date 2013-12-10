@@ -14,7 +14,7 @@ from raster_mask import *
 
 INDIVIDUAL STEPS FOR DEFINING FUNCITON
 
-year = '2009'
+year = 2009
 satellite = 'MOD10A1'
 
 files = np.sort(glob.glob('files/data/MODIS_Snow_Data/%s.A%d*.*hdf'%(satellite,year)))
