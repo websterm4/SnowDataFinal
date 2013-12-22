@@ -115,7 +115,8 @@ for i,f in enumerate(files):
     file_id = f.split('/')[-1].split('.')[-5][1:] # title to just contain year,doy
     plt.title(file_id)
     plt.colorbar()
-    plt.savefig('file/images/snow_riogrande_%s.jpg'%file_id)
+    plt.savefig('files/images/snow_riogrande_%s.jpg'%file_id)
+    plt.close()
     
 # Making movie
 cmd = 'convert -delay 100 -loop 0 files/images/snow_riogrande_*.jpg files/images/snow_riogrande2.gif'
